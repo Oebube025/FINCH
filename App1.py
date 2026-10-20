@@ -1,6 +1,6 @@
 """
 FINCH - AI Business Intelligence Frontend (App1.py)
-Phase 3 Production-Ready Release with Privacy Masking and Terms.
+Phase 3 Production-Ready Release with Privacy Masking, Terms, and High-Contrast Auth UI.
 """
 
 import base64
@@ -25,7 +25,7 @@ from deck_builder import create_executive_deck
 from simulator import calculate_scenario, generate_sensitivity_matrix
 from finch_intro import show_finch_intro
 
-APP_VERSION = "2.11"
+APP_VERSION = "2.12"
 
 st.set_page_config(page_title="FINCH | AI Business Intelligence", page_icon="🐦",
                    layout="wide", initial_sidebar_state="expanded")
@@ -70,6 +70,44 @@ st.markdown("""
         font-weight: 600; padding: 0.6rem 1.2rem; width: 100%; box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.2), 0 6px 16px rgba(16, 185, 129, 0.4);
     }
     .stButton>button:hover { background: linear-gradient(135deg, #059669 100%, #047857 100%); transform: translateY(-1px); }
+
+    /* --- HIGH CONTRAST AUTH & SIGNUP FORM STYLING --- */
+    .auth-card-wrapper {
+        background: linear-gradient(145deg, #131c2e, #0d1322);
+        border: 1px solid rgba(71, 85, 105, 0.5);
+        padding: 2.5rem;
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    }
+    div[data-testid="stForm"] label p, 
+    .stTextInput label p, 
+    .stSelectbox label p,
+    .stCheckbox label span {
+        color: #F8FAFC !important;
+        font-weight: 600 !important;
+        font-size: 0.95rem !important;
+    }
+    .stTextInput input {
+        color: #0F172A !important;
+        background-color: #FFFFFF !important;
+        border-radius: 8px !important;
+        font-weight: 500 !important;
+        border: 1px solid #475569 !important;
+    }
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        background-color: #162032 !important;
+        border-radius: 8px 8px 0px 0px !important;
+        color: #94a3b8 !important;
+        font-weight: 600;
+        padding: 10px 20px;
+    }
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(135deg, #10b981 0%, #0f9d8f 100%) !important;
+        color: #FFFFFF !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -136,25 +174,27 @@ if not st.session_state.get("user"):
         st.session_state["nav_state"] = "portal"
 
     if st.session_state["nav_state"] == "portal":
-        _, col, _ = st.columns([1, 2.2, 1])
+        _, col, _ = st.columns([1, 2.4, 1])
         with col:
             show_finch_intro(mode="banner", height=200, bg="#0b0f19")
             
             st.markdown("""
             <div style="text-align:center; padding:0.2rem 0 1.5rem;">
             <span class="finch-gradient-heading" style="font-size:3.8rem; line-height:1; letter-spacing:.32em; margin-right:-.32em;">FINCH</span>
-            <span style="display:inline-block; vertical-align:top; margin-left:1.2rem; padding:.2rem .6rem; font-family:'Inter',sans-serif; font-size:.75rem; font-weight:700; color:#fff; background:linear-gradient(135deg,#10b981,#0f9d8f); border-radius:999px;">BETA v2.11</span>
+            <span style="display:inline-block; vertical-align:top; margin-left:1.2rem; padding:.2rem .6rem; font-family:'Inter',sans-serif; font-size:.75rem; font-weight:700; color:#fff; background:linear-gradient(135deg,#10b981,#0f9d8f); border-radius:999px;">BETA v2.12</span>
             <div style="width:70px; height:3px; margin:.9rem auto .7rem; background:linear-gradient(90deg,transparent,#f4b860,transparent); border-radius:2px;"></div>
             <div style="font-family:'Inter',sans-serif; font-size:.8rem; font-weight:500; letter-spacing:.3em; text-transform:uppercase; color:#7fa6c9;">Secure Business Intelligence Workspace</div>
             </div>
             """, unsafe_allow_html=True)
             
+            st.markdown('<div class="auth-card-wrapper">', unsafe_allow_html=True)
             tab_login, tab_signup, tab_terms = st.tabs(["Log in", "Create account", "Beta Terms & Privacy"])
 
             with tab_login:
                 with st.form("login_form"):
                     u = st.text_input("Username or Email")
                     p = st.text_input("Password", type="password")
+                    st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
                     if st.form_submit_button("🚀 Log in"):
                         verified_user = verify_user(u, p)
                         if verified_user:
@@ -173,6 +213,7 @@ if not st.session_state.get("user"):
                     np1 = st.text_input("Password (min 8 characters)", type="password")
                     np2 = st.text_input("Confirm password", type="password")
                     inv = st.text_input("Invite code", type="password")
+                    st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
                     if st.form_submit_button("Create account"):
                         if not hmac.compare_digest(inv.encode(), INVITE_CODE.encode()):
                             st.error("Invite code required.")
@@ -192,11 +233,14 @@ if not st.session_state.get("user"):
 
             with tab_terms:
                 st.markdown("""
-                ### 🛡️ FINCH Beta Privacy Policy & Terms of Service
-                - **Data Confidentiality:** Raw transaction rows are never sent to external AI providers. Only aggregated totals and anonymized category leaderboards are transmitted.
-                - **Beta Disclaimer:** FINCH is provided as-is during the beta evaluation period. Financial decisions made based on audit insights remain the sole responsibility of the business owner.
-                - **Security:** All tenant records and scenarios are encrypted in transit and at rest.
-                """)
+                <div style="color: #E2E8F0; font-size: 0.95rem; line-height: 1.6;">
+                <h4 style="color: #5eead4; margin-top: 0;">🛡️ FINCH Beta Privacy Policy & Terms of Service</h4>
+                <p><b>Data Confidentiality:</b> Raw transaction rows are never sent to external AI providers. Only aggregated totals and anonymized category leaderboards are transmitted.</p>
+                <p><b>Beta Disclaimer:</b> FINCH is provided as-is during the beta evaluation period. Financial decisions made based on audit insights remain the sole responsibility of the business owner.</p>
+                <p><b>Security:</b> All tenant records and scenarios are encrypted in transit and at rest.</p>
+                </div>
+                """, unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
         st.stop()
 
 USER = st.session_state["user"]
