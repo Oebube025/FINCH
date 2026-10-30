@@ -1,5 +1,5 @@
 """
-analysis.py - FINCH Data Analysis & Parsing Engine
+analysis.py - FINCH Data Analysis & Parsing Engine (Phase 0 Core)
 """
 import re
 import pandas as pd
