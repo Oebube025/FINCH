@@ -1,5 +1,6 @@
 """
-deck_builder.py - FINCH Presentation Generator with Native Charts (Expanded 12-Slide Executive CFO Deck)
+deck_builder.py - FINCH Presentation Generator with Native Charts & Professional Formatting (12-Executive Slide CFO Deck)
+
 """
 import io
 from pptx import Presentation
@@ -8,7 +9,7 @@ from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.chart.data import CategoryChartData
-from pptx.enum.chart import XL_CHART_TYPE, XL_LEGEND_POSITION
+from pptx.enum.chart import XL_CHART_TYPE
 
 def create_executive_deck(facts, currency="₦", filename="Dataset", scenarios=None):
     prs = Presentation()
@@ -17,17 +18,17 @@ def create_executive_deck(facts, currency="₦", filename="Dataset", scenarios=N
     blank_slide_layout = prs.slide_layouts[6]
 
     theme_colors = {
-        "bg_dark": RGBColor(9, 13, 22),
-        "bg_light": RGBColor(255, 255, 255),
-        "card_bg": RGBColor(248, 250, 252),
-        "card_border": RGBColor(226, 232, 240),
-        "primary": RGBColor(15, 23, 42),
-        "accent": RGBColor(15, 157, 143),
-        "danger": RGBColor(225, 29, 72),
-        "success": RGBColor(16, 185, 129),
-        "gold": RGBColor(244, 184, 96),
-        "text_muted": RGBColor(100, 116, 139),
-        "text_dark": RGBColor(51, 65, 85),
+        "bg_dark": RGBColor(9, 13, 22),       # Deep slate / dark navy
+        "bg_light": RGBColor(255, 255, 255), # Clean white
+        "card_bg": RGBColor(248, 250, 252),  # Soft cool gray
+        "card_border": RGBColor(226, 232, 240), # Subtle border gray
+        "primary": RGBColor(15, 23, 42),     # Dark slate
+        "accent": RGBColor(15, 157, 143),    # Teal accent
+        "danger": RGBColor(225, 29, 72),     # Coral / red for deficits
+        "success": RGBColor(16, 185, 129),   # Emerald green for health / margin
+        "gold": RGBColor(244, 184, 96),      # Warm gold for highlights
+        "text_muted": RGBColor(100, 116, 139),# Slate muted text
+        "text_dark": RGBColor(51, 65, 85),   # Body text slate
     }
 
     totals = facts.get("totals", {})
@@ -80,7 +81,9 @@ def create_executive_deck(facts, currency="₦", filename="Dataset", scenarios=N
             p_sub.font.size = Pt(13)
             p_sub.font.color.rgb = theme_colors["text_muted"]
 
-    # SLIDE 1: Title
+    # ==========================================
+    # SLIDE 1: Title Slide
+    # ==========================================
     slide1 = prs.slides.add_slide(blank_slide_layout)
     set_background(slide1, theme_colors["bg_dark"])
     txBox = slide1.shapes.add_textbox(Inches(1.0), Inches(2.2), Inches(11.3), Inches(3.5))
@@ -103,7 +106,9 @@ def create_executive_deck(facts, currency="₦", filename="Dataset", scenarios=N
     p2.font.size = Pt(16)
     p2.font.color.rgb = theme_colors["text_muted"]
 
-    # SLIDE 2: Executive Financial Summary
+    # ==========================================
+    # SLIDE 2: Core Metrics Summary Cards
+    # ==========================================
     slide2 = prs.slides.add_slide(blank_slide_layout)
     set_background(slide2, theme_colors["bg_light"])
     add_header(slide2, "Core Metrics", "Executive Financial Summary", "High-level summary of total top-line revenue, operating costs, and net profit.")
@@ -140,10 +145,12 @@ def create_executive_deck(facts, currency="₦", filename="Dataset", scenarios=N
         p_sub.font.bold = True
         p_sub.font.color.rgb = theme_colors["accent"] if not m.get("dark") else theme_colors["gold"]
 
-    # SLIDE 3: Category Distribution & Concentration
+    # ==========================================
+    # SLIDE 3: Chart 1 - Category Distribution
+    # ==========================================
     slide3 = prs.slides.add_slide(blank_slide_layout)
     set_background(slide3, theme_colors["bg_light"])
-    add_header(slide3, "Category Distribution", "Top Revenue Categories", "Native chart breakdown of revenue concentration across categories.")
+    add_header(slide3, "Category Distribution", "Top Revenue Categories", "Native chart breakdown of revenue concentration across primary product streams.")
     if rbc:
         chart_data = CategoryChartData()
         top_cats = list(rbc.items())[:6]
@@ -153,11 +160,16 @@ def create_executive_deck(facts, currency="₦", filename="Dataset", scenarios=N
             XL_CHART_TYPE.COLUMN_CLUSTERED, Inches(0.8), Inches(2.2), Inches(11.7), Inches(4.5), chart_data
         )
         chart_shape.chart.has_legend = False
+    else:
+        txBox = slide3.shapes.add_textbox(Inches(0.8), Inches(2.5), Inches(11.5), Inches(1.0))
+        txBox.text_frame.paragraphs[0].text = "No category mapping available."
 
-    # SLIDE 4: Performance & Revenue Trajectory Trend
+    # ==========================================
+    # SLIDE 4: Chart 2 - Performance Trends
+    # ==========================================
     slide4 = prs.slides.add_slide(blank_slide_layout)
     set_background(slide4, theme_colors["bg_light"])
-    add_header(slide4, "Performance Trends", "Chronological Revenue Trend", "Monthly revenue trajectory over active timeline.")
+    add_header(slide4, "Performance Trends", "Chronological Revenue Trajectory", "Monthly revenue evolution and temporal trend across active operational timeline.")
     trend_points = trend.get("points", [])
     if trend_points:
         chart_data = CategoryChartData()
@@ -167,15 +179,20 @@ def create_executive_deck(facts, currency="₦", filename="Dataset", scenarios=N
             XL_CHART_TYPE.LINE, Inches(0.8), Inches(2.2), Inches(11.7), Inches(4.5), chart_data
         )
         chart_shape.chart.has_legend = False
+    else:
+        txBox = slide4.shapes.add_textbox(Inches(0.8), Inches(2.5), Inches(11.5), Inches(1.0))
+        txBox.text_frame.paragraphs[0].text = "No date column selected for chronological trend."
 
-    # SLIDE 5: Cost & Variance Analysis
+    # ==========================================
+    # SLIDE 5: Cost Architecture
+    # ==========================================
     slide5 = prs.slides.add_slide(blank_slide_layout)
     set_background(slide5, theme_colors["bg_light"])
-    add_header(slide5, "Cost Architecture", "OPEX & Cost Variance Breakdown", "Granular analysis of operating expenditure and budget variances.")
+    add_header(slide5, "Cost Architecture", "OPEX & Cost Variance Breakdown", "Granular analysis of operating expenditure and budget distribution.")
     cost_items = [
-        ("Fixed Operational Overhead", f"{currency}{total_cost * 0.55:,.2f}" if cost_known else "N/A", "55% of total budget allocated to fixed facility & admin expenses."),
-        ("Variable Production / COGS", f"{currency}{total_cost * 0.30:,.2f}" if cost_known else "N/A", "30% attributed to direct product/service delivery costs."),
-        ("Administrative & S&M", f"{currency}{total_cost * 0.15:,.2f}" if cost_known else "N/A", "15% spent on sales channels and compliance overhead.")
+        ("Fixed Operational Overhead", f"{currency}{total_cost * 0.55:,.2f}" if cost_known else "N/A", "55% allocated to fixed facility, tech infrastructure, and admin overhead."),
+        ("Variable Production / COGS", f"{currency}{total_cost * 0.30:,.2f}" if cost_known else "N/A", "30% attributed to direct product and service delivery costs."),
+        ("Administrative & S&M", f"{currency}{total_cost * 0.15:,.2f}" if cost_known else "N/A", "15% dedicated to customer acquisition, sales, and compliance.")
     ]
     for i, (head, val, desc) in enumerate(cost_items):
         x = Inches(0.8) + i * Inches(4.0)
@@ -204,14 +221,16 @@ def create_executive_deck(facts, currency="₦", filename="Dataset", scenarios=N
         pd.font.size = Pt(12)
         pd.font.color.rgb = theme_colors["text_muted"]
 
-    # SLIDE 6: Unit Economics & Cash Burn Dynamics
+    # ==========================================
+    # SLIDE 6: Unit Economics
+    # ==========================================
     slide6 = prs.slides.add_slide(blank_slide_layout)
     set_background(slide6, theme_colors["bg_light"])
-    add_header(slide6, "Unit Economics", "Cash Burn & Operational Runway", "Evaluation of unit profitability, monthly burn rate, and capital runway.")
+    add_header(slide6, "Unit Economics", "Cash Burn & Operational Runway", "Evaluation of unit profitability, monthly cash drain, and liquidity runway.")
     ue_cards = [
-        ("Monthly Cash Burn", f"{currency}{abs(net_profit)/12:,.2f}" if net_profit < 0 else f"{currency}0.00", "Estimated average monthly operational drain."),
-        ("Revenue-to-Cost Ratio", f"{(total_rev / total_cost):.2f}x" if total_cost > 0 else "N/A", "Current operational yield ratio (Target: > 1.5x)."),
-        ("Working Capital Runway", "< 6 Months", "Urgency level for structural cost optimization.")
+        ("Monthly Cash Burn", f"{currency}{abs(net_profit)/12:,.2f}" if net_profit < 0 else f"{currency}0.00", "Estimated average monthly operational deficit drain."),
+        ("Revenue-to-Cost Ratio", f"{(total_rev / total_cost):.2f}x" if total_cost > 0 else "N/A", "Current operational yield ratio (Target benchmark: > 1.5x)."),
+        ("Working Capital Runway", "< 6 Months", "Immediate urgency level for structural cost optimization.")
     ]
     for i, (title, val, desc) in enumerate(ue_cards):
         x = Inches(0.8) + i * Inches(4.0)
@@ -240,12 +259,14 @@ def create_executive_deck(facts, currency="₦", filename="Dataset", scenarios=N
         pd.font.size = Pt(12)
         pd.font.color.rgb = theme_colors["text_muted"]
 
-    # SLIDE 7: Sensitivity & What-If Scenario Modeling
+    # ==========================================
+    # SLIDE 7: Sensitivity & What-If Scenarios
+    # ==========================================
     slide7 = prs.slides.add_slide(blank_slide_layout)
     set_background(slide7, theme_colors["bg_light"])
-    add_header(slide7, "Strategic Forecasting", "Sensitivity & What-If Scenarios", "Projections based on variable cost-cutting and revenue growth parameters.")
+    add_header(slide7, "Strategic Forecasting", "Sensitivity & What-If Scenarios", "Projections modeled on variable cost containment and top-line scaling parameters.")
     scen_data = scenarios if scenarios else [
-        {"name": "Scenario A: Aggressive OPEX Cut", "rev": total_rev, "cost": total_cost * 0.6, "margin": ((total_rev - total_cost * 0.6)/total_rev * 100) if total_rev else 0},
+        {"name": "Scenario A: OPEX Cut (-40%)", "rev": total_rev, "cost": total_cost * 0.6, "margin": ((total_rev - total_cost * 0.6)/total_rev * 100) if total_rev else 0},
         {"name": "Scenario B: Volume Growth (+40%)", "rev": total_rev * 1.4, "cost": total_cost * 1.1, "margin": (((total_rev * 1.4) - (total_cost * 1.1))/(total_rev * 1.4) * 100) if total_rev else 0},
         {"name": "Scenario C: Balanced Turnaround", "rev": total_rev * 1.2, "cost": total_cost * 0.75, "margin": (((total_rev * 1.2) - (total_cost * 0.75))/(total_rev * 1.2) * 100) if total_rev else 0}
     ]
@@ -280,10 +301,12 @@ def create_executive_deck(facts, currency="₦", filename="Dataset", scenarios=N
         p_m.font.color.rgb = theme_colors["success"] if s.get('margin', 0) > 0 else theme_colors["danger"]
         p_m.space_before = Pt(10)
 
+    # ==========================================
     # SLIDE 8: Data Governance & Quality Audit
+    # ==========================================
     slide8 = prs.slides.add_slide(blank_slide_layout)
     set_background(slide8, theme_colors["bg_light"])
-    add_header(slide8, "Data Governance", "Data Health & Integrity Check", "Screening for null values, schema integrity, and duplicate records.")
+    add_header(slide8, "Data Governance", "Data Health & Integrity Check", "Screening for null values, ledger schema consistency, and duplicate entries.")
     circle = slide8.shapes.add_shape(MSO_SHAPE.OVAL, Inches(0.8), Inches(2.2), Inches(3.5), Inches(3.5))
     circle.fill.solid()
     circle.fill.fore_color.rgb = theme_colors["card_bg"]
@@ -314,7 +337,9 @@ def create_executive_deck(facts, currency="₦", filename="Dataset", scenarios=N
         p.font.color.rgb = theme_colors["text_dark"]
         p.space_after = Pt(12)
 
+    # ==========================================
     # SLIDE 9: Advanced CFO Strategic Deep-Dive
+    # ==========================================
     slide9 = prs.slides.add_slide(blank_slide_layout)
     set_background(slide9, theme_colors["bg_light"])
     add_header(slide9, "Executive Deep-Dive", "Advanced CFO Strategic Assessment", "Synthesis of macro financial risks, cost drivers, and restructuring priorities.")
@@ -334,7 +359,9 @@ def create_executive_deck(facts, currency="₦", filename="Dataset", scenarios=N
         p.font.color.rgb = theme_colors["text_dark"]
         p.space_after = Pt(14)
 
+    # ==========================================
     # SLIDE 10: Strategic Action Plan & Roadmap
+    # ==========================================
     slide10 = prs.slides.add_slide(blank_slide_layout)
     set_background(slide10, theme_colors["bg_light"])
     add_header(slide10, "Execution Roadmap", "FINCH Strategic Action Plan", "Prioritized 4-step execution framework for financial turnaround.")
@@ -371,14 +398,16 @@ def create_executive_deck(facts, currency="₦", filename="Dataset", scenarios=N
         p_ad.font.size = Pt(12)
         p_ad.font.color.rgb = theme_colors["text_muted"]
 
+    # ==========================================
     # SLIDE 11: Implementation Milestones & Timeline
+    # ==========================================
     slide11 = prs.slides.add_slide(blank_slide_layout)
     set_background(slide11, theme_colors["bg_light"])
-    add_header(slide11, "Timeline", "Turnaround Implementation Schedule", "Target milestones across 30, 60, 90, and 180-day horizons.")
+    add_header(slide11, "Timeline", "Turnaround Implementation Schedule", "Target milestones across 30, 60, 90, and 180-day operational horizons.")
     timeline = [
-        ("30 Days", "Immediate Audit & Cost Freeze", "Halt non-essential OPEX and perform line-item audit."),
-        ("60 Days", "Supplier Re-negotiation", "Renegotiate vendor terms and variable cost structures."),
-        ("90 Days", "High-Margin Scaling", "Reallocate budget into top 2 revenue-generating categories."),
+        ("30 Days", "Immediate Audit & Cost Freeze", "Halt non-essential OPEX and perform exhaustive line-item audit."),
+        ("60 Days", "Supplier Re-negotiation", "Renegotiate vendor terms and streamline variable cost structures."),
+        ("90 Days", "High-Margin Scaling", "Reallocate growth budget into top 2 revenue-generating categories."),
         ("180 Days", "Break-Even Benchmark", "Target operational break-even under Scenario C parameters.")
     ]
     for i, (period, goal, detail) in enumerate(timeline):
@@ -408,7 +437,9 @@ def create_executive_deck(facts, currency="₦", filename="Dataset", scenarios=N
         p_d.font.size = Pt(12)
         p_d.font.color.rgb = theme_colors["text_muted"]
 
-    # SLIDE 12: Closing & Governance Sign-off
+    # ==========================================
+    # SLIDE 12: End Remark / Closing Slide
+    # ==========================================
     slide12 = prs.slides.add_slide(blank_slide_layout)
     set_background(slide12, theme_colors["bg_dark"])
     txBox12 = slide12.shapes.add_textbox(Inches(1.5), Inches(2.5), Inches(10.3), Inches(3.0))
