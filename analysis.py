@@ -1,5 +1,5 @@
 """
-analysis.py - FINCH Data Analysis & Parsing Engine (Phase 0 Core)
+analysis.py - FINCH Data Analysis & Parsing Engine (Phase 2 Production Safeguards)
 """
 import re
 import pandas as pd
@@ -39,8 +39,13 @@ def parse_numeric_series(series: pd.Series) -> pd.Series:
 
     cleaned = series.astype(str).str.replace(r"[^\d.,\-]", "", regex=True)
     sample_clean = cleaned.dropna().head(20).astype(str)
+    
+    # Phase 2: Enhanced European number format & decimal comma handling
     if any("," in s and "." in s and s.rfind(",") > s.rfind(".") for s in sample_clean):
         cleaned = cleaned.str.replace(".", "", regex=False).str.replace(",", ".", regex=False)
+    elif any("," in s and "." not in s for s in sample_clean):
+        # Handle formats like "1.234,56" or pure comma decimals
+        cleaned = cleaned.str.replace(",", ".", regex=False)
     else:
         cleaned = cleaned.str.replace(",", "", regex=False)
         
@@ -108,6 +113,7 @@ def analyze_dataset(df: pd.DataFrame, revenue_col: str, cost_col: str, category_
         grouped = cat_df.groupby("category")["revenue"].sum().sort_values(ascending=False)
         revenue_by_category = grouped.to_dict()
 
+    # Phase 2: Precise IQR Outlier Screening & Safeguards
     anomalies = []
     clean_rev = rev_series.dropna()
     if len(clean_rev) > 5:
