@@ -1,6 +1,6 @@
 """
 FINCH - AI Business Intelligence Frontend (App1.py)
-Phase 3 Production-Ready Release with Privacy Masking, Terms, and High-Contrast Auth UI.
+Phase 3 Production-Ready Release with Supabase Multi-Tenancy & Google OAuth Support.
 """
 
 import base64
@@ -71,7 +71,6 @@ st.markdown("""
     }
     .stButton>button:hover { background: linear-gradient(135deg, #059669 100%, #047857 100%); transform: translateY(-1px); }
 
-    /* --- HIGH CONTRAST AUTH & SIGNUP FORM STYLING --- */
     .auth-card-wrapper {
         background: linear-gradient(145deg, #131c2e, #0d1322);
         border: 1px solid rgba(71, 85, 105, 0.5);
@@ -94,9 +93,7 @@ st.markdown("""
         font-weight: 500 !important;
         border: 1px solid #475569 !important;
     }
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
-    }
+    .stTabs [data-baseweb="tab-list"] { gap: 8px; }
     .stTabs [data-baseweb="tab"] {
         background-color: #162032 !important;
         border-radius: 8px 8px 0px 0px !important;
@@ -129,13 +126,6 @@ def _init():
     return True
 
 _init()
-
-@st.cache_data(ttl=60)
-def check_backend_status(url: str, token: str) -> bool:
-    try:
-        return requests.get(f"{url}/health", headers={"X-API-Key": token}, timeout=3).status_code == 200
-    except Exception:
-        return False
 
 @st.cache_data(show_spinner=False)
 def get_facts(df: pd.DataFrame, rev, cost, cat, date, notes: tuple):
@@ -183,7 +173,7 @@ if not st.session_state.get("user"):
             <span class="finch-gradient-heading" style="font-size:3.8rem; line-height:1; letter-spacing:.32em; margin-right:-.32em;">FINCH</span>
             <span style="display:inline-block; vertical-align:top; margin-left:1.2rem; padding:.2rem .6rem; font-family:'Inter',sans-serif; font-size:.75rem; font-weight:700; color:#fff; background:linear-gradient(135deg,#10b981,#0f9d8f); border-radius:999px;">BETA v2.12</span>
             <div style="width:70px; height:3px; margin:.9rem auto .7rem; background:linear-gradient(90deg,transparent,#f4b860,transparent); border-radius:2px;"></div>
-            <div style="font-family:'Inter',sans-serif; font-size:.8rem; font-weight:500; letter-spacing:.3em; text-transform:uppercase; color:#7fa6c9;">Secure Business Intelligence Workspace</div>
+            <div style="font-family:'Inter',sans-serif; font-size:.8rem; font-weight:500; letter-spacing:.3em; text-transform:uppercase; color:#7fa6c9;">Secure Supabase Cloud Workspace</div>
             </div>
             """, unsafe_allow_html=True)
             
@@ -236,8 +226,7 @@ if not st.session_state.get("user"):
                 <div style="color: #E2E8F0; font-size: 0.95rem; line-height: 1.6;">
                 <h4 style="color: #5eead4; margin-top: 0;">🛡️ FINCH Beta Privacy Policy & Terms of Service</h4>
                 <p><b>Data Confidentiality:</b> Raw transaction rows are never sent to external AI providers. Only aggregated totals and anonymized category leaderboards are transmitted.</p>
-                <p><b>Beta Disclaimer:</b> FINCH is provided as-is during the beta evaluation period. Financial decisions made based on audit insights remain the sole responsibility of the business owner.</p>
-                <p><b>Security:</b> All tenant records and scenarios are encrypted in transit and at rest.</p>
+                <p><b>Persistent Storage:</b> All audit histories and scenarios are securely stored in Supabase multi-tenant cloud storage, surviving all application reboots.</p>
                 </div>
                 """, unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
@@ -265,11 +254,11 @@ if is_admin:
     with st.sidebar.expander("🛠️ Founder Admin Panel"):
         st.success("🔓 Authorized Admin View")
         try:
-            from database import get_connection
-            conn = get_connection()
-            tenants_df = conn.execute("SELECT email, created_at, last_active, total_uploads FROM tenants ORDER BY last_active DESC").fetchdf()
-            conn.close()
-            st.dataframe(tenants_df, use_container_width=True)
+            from database import db_manager
+            client = db_manager.get_client()
+            if client:
+                tenants_df = pd.DataFrame(client.table("tenants").select("email, created_at").execute().data or [])
+                st.dataframe(tenants_df, use_container_width=True)
         except Exception:
             st.info("Admin records loading...")
 
@@ -556,7 +545,7 @@ with tabs[4]:
             )
 
     st.markdown("---")
-    st.markdown("<h3 class='finch-gradient-heading'>📂 Dedicated User History & Audit Trail</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 class='finch-gradient-heading'>📂 Dedicated User History & Audit Trail (Supabase)</h3>", unsafe_allow_html=True)
     history_records = load_user_history_db(USER_EMAIL)
     if history_records:
         st.dataframe(pd.DataFrame(history_records)[["file_name", "total_revenue", "net_profit", "profit_margin", "timestamp"]], use_container_width=True)
