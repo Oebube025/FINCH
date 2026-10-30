@@ -1,6 +1,6 @@
 """
-FastAPI Backend (main.py) - Executive Intelligence Suite
-Synchronized to v2.1 with Cohere command-a-03-2025 and strict payload limits.
+FastAPI Backend (main.py) - Executive Intelligence Suite (Phase 1 Update)
+Synchronized with Cohere and strict payload validation & structured markdown output.
 """
 
 import hmac
@@ -16,7 +16,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 
-APP_VERSION = "2.1"
+APP_VERSION = "2.12"
 app = FastAPI(title="Executive Intelligence Backend", version=APP_VERSION)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("uvicorn")
@@ -69,14 +69,11 @@ def sanitize_stats(stats: dict) -> dict:
     meta = stats.get("metadata") or {}
     return {
         "metadata": {k: meta.get(k) for k in (
-            "total_records", "data_health_index", "missing_cells", "duplicate_rows", "anomaly_count",
+            "total_rows", "data_health_index", "missing_cells", "duplicate_rows", "anomaly_count",
             "revenue_column", "cost_column", "category_column", "date_column")},
         "totals": stats.get("totals"),
         "revenue_by_category": dict(list((stats.get("revenue_by_category") or {}).items())[:15]),
-        "leaderboards": stats.get("leaderboards"),
-        "concentration": stats.get("concentration"),
         "trend": stats.get("trend"),
-        "anomaly_summary": stats.get("anomaly_summary"),
         "anomalies": stats.get("anomalies", [])[:5],
         "warnings": [str(w)[:300] for w in (stats.get("warnings") or [])[:10]],
     }
@@ -98,10 +95,17 @@ def sanitize_scenarios(scenarios: Optional[list]) -> list:
 
 
 def build_prompt(stats: dict, scenarios: list, currency: str) -> str:
-    return f"""You are a friendly, practical business advisor writing for a small business owner with no finance background.
-Write in plain, simple English with short sentences. Avoid jargon.
-All monetary figures use the currency symbol: {currency}.
-Analyze ONLY the data inside the <data> tags. Do NOT invent numbers.
+    return f"""You are an elite, no-nonsense fractional CFO and startup turnaround specialist with 20 years of experience.
+Your job is to ruthlessly analyze the provided verified financial statistics, category leaderboards, and what-if scenarios to deliver high-impact, actionable business advice to the owner.
+
+Strict Rules:
+1. Avoid generic business jargon, fluff, or empty praise. Be direct, analytical, and professional.
+2. Base every recommendation strictly on the provided revenue, cost, and category numbers ({currency}). Do not hallucinate external metrics.
+3. Structure your response into exactly these four sections using clear markdown headings:
+   - **Executive Health Score:** A brutal-truth 2-sentence summary of current financial standing.
+   - **Top 3 Margin Leaks:** Identify specific categories or cost structures dragging down profitability.
+   - **Immediate Cash-Flow Actions:** Give 2 concrete, tactical steps the owner can execute this week.
+   - **What-If Scenario Critique:** Evaluate the user's simulation scenario and warn them of hidden risks.
 
 <data>
 VERIFIED DATASET FACT SHEET:
@@ -110,14 +114,6 @@ VERIFIED DATASET FACT SHEET:
 SAVED WHAT-IF SCENARIOS:
 {json.dumps(scenarios, indent=1) if scenarios else "None provided."}
 </data>
-
-Write the report in exactly these 6 markdown sections:
-1. HOW THE BUSINESS IS DOING (money in, money spent, profit, margin)
-2. WHAT SELLS BEST AND WHAT DOESN'T (top and weakest products or categories)
-3. IS YOUR RECORD-KEEPING RELIABLE? (missing data, duplicates, unusually large sales / outliers)
-4. THINGS TO WATCH OUT FOR (thin profit, relying on one product, other risks)
-5. TRENDS AND YOUR WHAT-IF PLANS (how sales change over time and what the saved plans mean)
-6. WHAT TO DO IN THE NEXT 30 / 60 / 90 DAYS (simple, practical steps tied to the numbers)
 """
 
 
