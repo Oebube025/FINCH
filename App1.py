@@ -1,5 +1,5 @@
 """
-App1.py - FINCH Spreadsheet Analyzer & Executive CFO Suite (Phase 4 Edition)
+App1.py - FINCH Spreadsheet Analyzer & Executive CFO Suite (Full Cinematic Splash & Phase 4 Backend)
 """
 import os
 import streamlit as st
@@ -13,7 +13,6 @@ from deck_builder import create_executive_deck
 from finch_intro import show_finch_intro
 from database import (
     init_db, create_user, verify_user, get_user_email, 
-    save_scenario_db, load_scenarios_db, delete_scenarios_db,
     save_audit_history_db, load_user_history_db, 
     get_user_tier, update_user_tier, check_and_increment_daily_usage
 )
@@ -32,7 +31,9 @@ init_db()
 # Master Admin Configuration
 MASTER_ADMIN_EMAIL = "oebube025@gmail.com"
 
-# Initialize Session State
+# Initialize Session State Machine
+if "nav_state" not in st.session_state:
+    st.session_state.nav_state = "splash"  # Options: "splash", "auth", "app"
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 if "username" not in st.session_state:
@@ -40,8 +41,19 @@ if "username" not in st.session_state:
 if "user_email" not in st.session_state:
     st.session_state.user_email = ""
 
-def render_auth_portal():
-    """Renders the cinematic intro and authentication / registration tabs with Tier selection."""
+# --- 1. Cinematic Splash Screen State ---
+if st.session_state.nav_state == "splash":
+    show_finch_intro(mode="splash")
+    st.markdown("<br>", unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([1, 1.2, 1])
+    with col2:
+        if st.button("🚀 Get Started / Enter Workspace", type="primary", use_container_width=True):
+            st.session_state.nav_state = "auth"
+            st.rerun()
+    st.stop()
+
+# --- 2. Authentication & Tier Selection Portal State ---
+if not st.session_state.authenticated:
     show_finch_intro(mode="banner")
     
     st.markdown("## 🦅 Welcome to FINCH")
@@ -63,6 +75,7 @@ def render_auth_portal():
                     st.session_state.authenticated = True
                     st.session_state.username = verified_user
                     st.session_state.user_email = get_user_email(verified_user)
+                    st.session_state.nav_state = "app"
                     st.success(f"Welcome back, {verified_user}!")
                     st.rerun()
                 else:
@@ -84,6 +97,8 @@ def render_auth_portal():
             }[x]
         )
         
+        st.caption("By registering, you agree to FINCH's terms of service and multi-tenant data privacy policies.")
+        
         if st.button("Register Account", type="primary"):
             if not new_user or not new_email or not new_pass:
                 st.error("All fields are required to register.")
@@ -95,20 +110,21 @@ def render_auth_portal():
                     st.success("Account created successfully! You can now sign in using the 'Sign In' tab.")
                 else:
                     st.error("Registration failed. Username or email may already be taken.")
-
-# Check Authentication State
-if not st.session_state.authenticated:
-    render_auth_portal()
+                    
+    if st.button("⬅️ Back to Welcome Splash"):
+        st.session_state.nav_state = "splash"
+        st.rerun()
+        
     st.stop()
 
-# --- Authenticated App Experience ---
+# --- 3. Authenticated Dashboard Experience (Original UI + Phase 4 Backend) ---
 user_email = st.session_state.user_email
 user_tier = get_user_tier(user_email)
 is_master_admin = (user_email.lower() == MASTER_ADMIN_EMAIL.lower())
 
-# Sidebar User & Tier Status
+# Sidebar Workspace Controls
 with st.sidebar:
-    st.markdown(f"### 🦅 FINCH Workspace")
+    st.markdown("### 🦅 FINCH Workspace")
     st.write(f"**User:** {st.session_state.username}")
     st.write(f"**Email:** {user_email}")
     
@@ -117,24 +133,29 @@ with st.sidebar:
     else:
         st.markdown(f"⭐ **Tier:** `{user_tier.upper()}`")
         if user_tier == "free":
-            st.info("💡 Free tier includes **5 analyses per day**. Upgrade to Pro for unlimited access.")
+            st.info("💡 Free tier: **5 analyses per day**.")
             if st.button("Upgrade to Pro (₦14,999/mo)"):
                 update_user_tier(user_email, "pro")
                 st.success("Upgraded to Pro! Refreshing...")
                 st.rerun()
                 
-    if st.button("Sign Out"):
+    if st.button("🔒 Sign Out"):
         st.session_state.authenticated = False
         st.session_state.username = ""
         st.session_state.user_email = ""
+        st.session_state.nav_state = "splash"
         st.rerun()
 
     st.markdown("---")
     st.markdown("### 📂 Upload Spreadsheet")
     uploaded_file = st.file_uploader("Upload CSV or Excel file", type=["csv", "xlsx", "xls"])
 
+# Main Dashboard View
+st.title("🦅 FINCH | Executive Financial Intelligence Suite")
+st.markdown("### Automated Fractional CFO Advisory & Spreadsheet Diagnostics")
+
 if not uploaded_file:
-    st.info("👋 Welcome to **FINCH**. Please upload a financial spreadsheet (.csv or .xlsx) in the sidebar to begin your executive audit.")
+    st.info("👋 Welcome back! Please upload a financial spreadsheet (.csv or .xlsx) in the sidebar to begin your executive audit.")
     st.stop()
 
 # Load and process data
@@ -152,7 +173,7 @@ totals = extract_kpis(cleaned_df)
 health_score = generate_health_score(cleaned_df)
 outliers = detect_outliers(cleaned_df)
 
-# Main Navigation Tabs
+# Navigation Tabs
 tab_audit, tab_simulator, tab_deck, tab_history = st.tabs([
     "📊 Financial Audit & AI Advisor", 
     "🧮 What-If Simulator", 
@@ -172,11 +193,12 @@ with tab_audit:
     st.markdown("---")
     
     if st.button("🚀 Run AI CFO Advisory Audit", type="primary"):
+        # Check daily usage limit for free tier users (unless master admin)
         if not is_master_admin and user_tier == "free":
             allowed = check_and_increment_daily_usage(user_email, user_tier)
             if not allowed:
                 st.error("🔒 **Daily Free Limit Reached!**")
-                st.warning("You have exhausted your **5 free analyses** for today. Upgrade to the **Pro Tier (₦14,999/mo)** for unlimited uploads and advanced features, or return tomorrow for 5 fresh free uses!")
+                st.warning("You have exhausted your **5 free analyses** for today. Upgrade to the **Pro Tier (₦14,999/mo)** for unlimited uploads, or come back tomorrow for 5 fresh free uses!")
                 
                 with st.expander("⭐ Upgrade Your Account Now", expanded=True):
                     st.write("Unlock unlimited executive insights, scenario modeling, and full PowerPoint deck generators.")
@@ -191,6 +213,7 @@ with tab_audit:
             st.success("Audit complete!")
             st.markdown(advisory_text)
             
+            # Save to history database
             save_audit_history_db(user_email, "Executive Audit", uploaded_file.name, totals, advisory_text)
 
 with tab_simulator:
@@ -237,7 +260,7 @@ with tab_history:
             with st.expander(f"📁 {rec.get('file_name', 'Audit')} - {rec.get('timestamp', 'Recent')}"):
                 st.write(f"**Total Revenue:** ₦{rec.get('total_revenue', 0):,.2f}")
                 st.write(f"**Net Profit:** ₦{rec.get('net_profit', 0):,.2f}")
-                st.write(f"**Profit Margin:** {rec.get('profit_margin', 0):.2f}%")
+                st.write(f"**Profit Margin:** {rec.get('profit_margin', 0):,.2f}%")
                 st.markdown(f"**Advisory:** {rec.get('advisory', 'N/A')}")
     else:
         st.info("No past audit history found for this account.")
