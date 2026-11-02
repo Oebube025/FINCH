@@ -1,38 +1,46 @@
 """
-simulator.py - FINCH What-If Sensitivity & Simulation Engine
+simulator.py - FINCH What-If Financial Scenario Simulator (Phase 4 Edition)
 """
-def calculate_scenario(totals: dict, price_adj_pct: float, volume_adj_pct: float, fixed_change: float, var_pct: float, fixed_share: float, elasticity: float = 1.2):
-    base_rev = totals.get("total_revenue", 0)
-    base_costs = totals.get("total_costs", 0)
+
+def run_simulation(totals: dict, revenue_adj_pct: float, cost_adj_pct: float) -> dict:
+    """
+    Simulates adjusted financial performance based on percentage changes 
+    to revenue and operational costs.
     
-    effective_volume_adj = volume_adj_pct - (price_adj_pct * elasticity)
-    price_multiplier = 1.0 + (price_adj_pct / 100.0)
-    volume_multiplier = max(0.0, 1.0 + (effective_volume_adj / 100.0))
+    Args:
+        totals (dict): Dictionary containing base KPI values ('total_revenue', 'total_costs', 'net_profit').
+        revenue_adj_pct (float): Percentage adjustment for revenue (e.g., +10.0 or -5.0).
+        cost_adj_pct (float): Percentage adjustment for costs (e.g., +5.0 or -10.0).
+        
+    Returns:
+        dict: Simulated revenue, costs, net profit, and profit margin.
+    """
+    if not totals:
+        return {
+            "revenue": 0.0,
+            "costs": 0.0,
+            "net_profit": 0.0,
+            "profit_margin": 0.0
+        }
+        
+    base_revenue = totals.get("total_revenue", 0.0)
+    base_costs = totals.get("total_costs", 0.0)
     
-    sim_revenue = base_rev * price_multiplier * volume_multiplier
-    fixed_costs = base_costs * fixed_share + fixed_change
-    variable_costs = base_costs * (1.0 - fixed_share) * volume_multiplier * (1.0 + var_pct / 100.0)
-    sim_costs = max(0.0, fixed_costs + variable_costs)
+    # If base_costs wasn't explicitly extracted but total_revenue and net_profit exist, estimate costs
+    if base_costs == 0.0 and base_revenue > 0:
+        net_profit_base = totals.get("net_profit", base_revenue * 0.25)
+        base_costs = max(0.0, base_revenue - net_profit_base)
+
+    # Apply percentage adjustments
+    simulated_revenue = base_revenue * (1 + revenue_adj_pct / 100.0)
+    simulated_costs = base_costs * (1 + cost_adj_pct / 100.0)
     
-    sim_net_profit = sim_revenue - sim_costs
-    base_profit = base_rev - base_costs
+    simulated_net_profit = simulated_revenue - simulated_costs
+    simulated_margin = (simulated_net_profit / simulated_revenue * 100) if simulated_revenue > 0 else 0.0
     
     return {
-        "revenue": sim_revenue,
-        "costs": sim_costs,
-        "net_profit": sim_net_profit,
-        "profit_margin": (sim_net_profit / sim_revenue * 100.0) if sim_revenue > 0 else 0.0,
-        "profit_delta": sim_net_profit - base_profit
+        "revenue": simulated_revenue,
+        "costs": simulated_costs,
+        "net_profit": simulated_net_profit,
+        "profit_margin": simulated_margin
     }
-
-def generate_sensitivity_matrix(totals: dict, fixed_share: float, elasticity: float = 1.2):
-    price_steps = [-20, -10, 0, 10, 20]
-    volume_steps = [-20, -10, 0, 10, 20]
-    matrix = []
-    for p in price_steps:
-        row = {"Price Change": f"{p:+}%"}
-        for v in volume_steps:
-            res = calculate_scenario(totals, p, v, 0.0, 0.0, fixed_share, elasticity)
-            row[f"Vol {v:+}%"] = round(res["net_profit"], 2)
-        matrix.append(row)
-    return matrix
