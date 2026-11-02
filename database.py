@@ -1,20 +1,16 @@
 """
-database.py - FINCH Supabase & Multi-Tenant Persistence Layer (Phase 3)
+database.py - FINCH Supabase & Multi-Tenant Persistence Layer (Phase 4 Edition)
 """
 import os
+from datetime import date
 from typing import Optional
 from supabase import create_client, Client
 
 class DatabaseManager:
     def __init__(self):
-        # Securely loading from environment variables
-        self.url = os.getenv("SUPABASE_URL", "https://qprcnyjbxtbkjjyalhpo.supabase.co")
-        self.key = (
-            os.getenv("SUPABASE_SECRET_KEY") or 
-            os.getenv("SUPABASE_PUBLISHABLE_KEY") or 
-            os.getenv("SUPABASE_ANON_KEY") or 
-            ""
-        )
+        # Securely loading from environment variables or Streamlit secrets
+        self.url = os.getenv("SUPABASE_URL")
+        self.key = os.getenv("SUPABASE_SECRET_KEY") or os.getenv("SUPABASE_ANON_KEY") or os.getenv("SUPABASE_SERVICE_ROLE_KEY")
         self._client: Optional[Client] = None
 
     def get_client(self) -> Optional[Client]:
@@ -83,10 +79,7 @@ def log_tenant_activity(email: str, activity: str, increment_upload: bool = Fals
     except Exception as e:
         print(f"Failed to log activity: {e}")
 
-def save_feedback_db(user: str, feedback: str):
-    pass
-
-def create_user(username: str, email: str, password_hash: str) -> bool:
+def create_user(username: str, email: str, password_hash: str, tier: str = "free") -> bool:
     client = db_manager.get_client()
     if not client:
         return False
@@ -94,7 +87,8 @@ def create_user(username: str, email: str, password_hash: str) -> bool:
         client.table("tenants").insert({
             "username": username.strip().lower(),
             "email": email.strip().lower(),
-            "password_hash": password_hash
+            "password_hash": password_hash,
+            "tier": tier.strip().lower()
         }).execute()
         return True
     except Exception as e:
@@ -129,6 +123,65 @@ def get_user_email(username: str) -> str:
     except Exception:
         pass
     return f"{username}@finch.local"
+
+def get_user_tier(email: str) -> str:
+    client = db_manager.get_client()
+    if not client:
+        return "free"
+    try:
+        q = client.table("tenants").select("tier").eq("email", email.strip().lower()).execute()
+        if q.data and len(q.data) > 0:
+            return q.data[0].get("tier", "free")
+    except Exception:
+        pass
+    return "free"
+
+def update_user_tier(email: str, new_tier: str):
+    client = db_manager.get_client()
+    if not client:
+        return
+    try:
+        client.table("tenants").update({"tier": new_tier.lower()}).eq("email", email.strip().lower()).execute()
+    except Exception as e:
+        print(f"Failed to update tier: {e}")
+
+def check_and_increment_daily_usage(email: str, tier: str) -> bool:
+    """
+    Checks if a free user has remaining daily uses (max 5/day).
+    Pro, Enterprise, and Master Admins bypass this limit.
+    """
+    if not email:
+        return False
+        
+    if tier.lower() in ["pro", "enterprise", "admin"]:
+        return True
+
+    client = db_manager.get_client()
+    if not client:
+        return True
+
+    today_str = date.today().isoformat()
+
+    try:
+        res = client.table("tenant_usage").select("*").eq("email", email.strip().lower()).eq("usage_date", today_str).execute()
+        
+        if res.data and len(res.data) > 0:
+            current_count = res.data[0].get("uses_count", 0)
+            if current_count >= 5:
+                return False
+            else:
+                client.table("tenant_usage").update({"uses_count": current_count + 1}).eq("email", email.strip().lower()).eq("usage_date", today_str).execute()
+                return True
+        else:
+            client.table("tenant_usage").insert({
+                "email": email.strip().lower(),
+                "usage_date": today_str,
+                "uses_count": 1
+            }).execute()
+            return True
+    except Exception as e:
+        print(f"Usage check error: {e}")
+        return True
 
 def save_audit_history_db(email: str, report_type: str, file_name: str, totals: dict, advisory: str):
     client = db_manager.get_client()
