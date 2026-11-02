@@ -30,7 +30,7 @@ st.set_page_config(
 init_db()
 
 # Master Admin Configuration
-MASTER_ADMIN_EMAIL = "oebube025@gmail.com" # Update if needed, or matches your founder email
+MASTER_ADMIN_EMAIL = "oebube025@gmail.com"
 
 # Initialize Session State
 if "authenticated" not in st.session_state:
@@ -74,7 +74,6 @@ def render_auth_portal():
         new_email = st.text_input("Business Email", key="signup_email")
         new_pass = st.text_input("Choose Password", type="password", key="signup_pass")
         
-        # Tier Selection for New Accounts
         selected_tier = st.selectbox(
             "Select Subscription Tier",
             options=["free", "pro", "enterprise"],
@@ -173,7 +172,6 @@ with tab_audit:
     st.markdown("---")
     
     if st.button("🚀 Run AI CFO Advisory Audit", type="primary"):
-        # Check daily usage limit for free tier users (unless master admin)
         if not is_master_admin and user_tier == "free":
             allowed = check_and_increment_daily_usage(user_email, user_tier)
             if not allowed:
@@ -193,7 +191,6 @@ with tab_audit:
             st.success("Audit complete!")
             st.markdown(advisory_text)
             
-            # Save to history
             save_audit_history_db(user_email, "Executive Audit", uploaded_file.name, totals, advisory_text)
 
 with tab_simulator:
@@ -203,7 +200,7 @@ with tab_simulator:
     rev_adj = st.slider("Revenue Adjustment (%)", -50, 50, 10)
     cost_adj = st.slider("Cost Adjustment (%)", -50, 50, -5)
     
-        sim_res = run_simulation(totals, rev_adj, cost_adj)
+    sim_res = run_simulation(totals, rev_adj, cost_adj)
     
     col_a, col_b, col_c = st.columns(3)
     col_a.metric("Simulated Revenue", f"₦{sim_res['revenue']:,.2f}", f"{rev_adj}%")
@@ -213,7 +210,6 @@ with tab_simulator:
 with tab_deck:
     st.header("12-Slide Executive PowerPoint Deck Generator")
     
-    # Feature Gating for PPTX Deck Generator
     if is_master_admin or user_tier in ["pro", "enterprise"]:
         st.write("Generate a board-ready executive presentation deck complete with native charts and metrics.")
         if st.button("Generate & Download Executive PPTX"):
